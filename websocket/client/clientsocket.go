@@ -1,10 +1,12 @@
 package client
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/gorilla/websocket"
 )
@@ -45,9 +47,34 @@ func StartWebSocket(addr string, order string) {
 		fmt.Printf("Received msg : %s\n", msg)
 		cmd := exec.Command("../sl/sl")
 		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
+		stderr, err := cmd.StderrPipe()
+		if err != nil {
+			log.Fatal("Pipe init error : ", err)
+		}
+
+		if err := cmd.Start(); err != nil {
+
 			log.Println("Exec error :", err)
+		}
+
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			line := scanner.Text()
+
+			if strings.Contains(line, "END") {
+				err = conn.WriteMessage(1, []byte("Next"))
+				if err != nil {
+					log.Fatal("Write error : ", err)
+				}
+			}
+		}
+
+		if err := scanner.Err(); err != nil {
+			log.Fatal("Scanner error : ", err)
+		}
+
+		if err := cmd.Wait(); err != nil {
+			log.Println("Exec error : ", err)
 		}
 	}
 }
