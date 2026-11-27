@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"sl-net/server"
 	"strconv"
 
 	"github.com/spf13/cobra"
@@ -23,7 +24,7 @@ func main() {
 		Use:   "server",
 		Short: "Run the server",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("Serveur démarré sur le port %d (Fly: %t, Accident: %t, Little: %t)\n", port, fly, accident, little)
+			server.StartWebSocket(port)
 		},
 	}
 
