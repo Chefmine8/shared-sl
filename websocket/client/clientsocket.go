@@ -45,7 +45,7 @@ func StartWebSocket(addr string, order string) {
 			return
 		}
 		fmt.Printf("Received msg : %s\n", msg)
-		cmd := exec.Command("../sl/sl")
+		cmd := exec.Command("./sl")
 		cmd.Stdout = os.Stdout
 		stderr, err := cmd.StderrPipe()
 		if err != nil {
