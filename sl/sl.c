@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
 
     for (x = COLS - 1; ; --x) {
         if (x == 0) {
-            fprintf(stderr, "END");
+            fprintf(stderr, "END\n");
             fflush(stderr);
         }
         if (LOGO == 1) {
