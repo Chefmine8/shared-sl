@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"sync"
-	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -29,7 +28,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		log.Println("Upgraded error : ", err)
 		return
 	}
-	defer conn.Close()
 
 	fmt.Println("Client connected !")
 
@@ -50,14 +48,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	clientsMutex.Lock()
 	clients = append(clients, conn)
 	clientsMutex.Unlock()
-
-	for {
-		_, _, err := conn.ReadMessage()
-		if err != nil {
-			log.Println("Client disconnected or read message error :", err)
-			return
-		}
-	}
 }
 
 func remove(i int) {
@@ -69,24 +59,33 @@ func remove(i int) {
 func back() {
 	for {
 		clientsMutex.Lock()
-		if len(clients) == 0 {
-			clientsMutex.Unlock()
-			time.Sleep(10 * time.Second)
-			continue
-		}
 		for i := 0; i < len(clients); i++ {
 			conn := clients[i]
 			clientsMutex.Unlock()
+			log.Println("Is", i, " turn.")
 			send := fmt.Sprintf("Your turn")
 			err := conn.WriteMessage(1, []byte(send))
 			if err != nil {
 				log.Println("Send error : ", err)
 				remove(i)
+				conn.Close()
 				i--
 				clientsMutex.Lock()
 				continue
 			}
-			time.Sleep(1 * time.Second)
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				log.Println("Client disconnected :", err)
+				remove(i)
+				conn.Close()
+				i--
+				clientsMutex.Lock()
+				continue
+			}
+			if string(msg) != "Next" {
+				log.Println("Send error : ", string(msg))
+			}
+
 			clientsMutex.Lock()
 		}
 		clientsMutex.Unlock()
