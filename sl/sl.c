@@ -38,6 +38,7 @@
 /* sl version 1.00 : SL runs vomiting out smoke.                             */
 /*                                              by Toyoda Masashi 1992/12/11 */
 
+#include <stdio.h>
 #include <curses.h>
 #include <signal.h>
 #include <unistd.h>
@@ -98,6 +99,10 @@ int main(int argc, char *argv[])
     scrollok(stdscr, FALSE);
 
     for (x = COLS - 1; ; --x) {
+        if (x == 0) {
+            fprintf(stderr, "END");
+            fflush(stderr);
+        }
         if (LOGO == 1) {
             if (add_sl(x) == ERR) break;
         }
