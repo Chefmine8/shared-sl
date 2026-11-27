@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"sl-net/client"
 	"sl-net/server"
-	"strconv"
 
 	"github.com/spf13/cobra"
 )
@@ -37,15 +37,12 @@ func main() {
 		Use:   "join <address:port> <order>",
 		Short: "Connect a client to the train chain",
 		Args:  cobra.ExactArgs(2),
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Run: func(cmd *cobra.Command, args []string) {
 			addr := args[0]
-			order, err := strconv.Atoi(args[1])
-			if err != nil {
-				return fmt.Errorf("order parm gotta be a number : %w", err)
-			}
+			order := args[1]
 
-			fmt.Printf("Connexion à %s en position #%d\n", addr, order)
-			return nil
+			fmt.Printf("Connexion à %s en position #%s\n", addr, order)
+			client.StartWebSocket(addr, order)
 		},
 	}
 
