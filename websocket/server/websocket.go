@@ -94,6 +94,7 @@ func back() {
 
 func StartWebSocket(port int) {
 	go back()
+	http.Handle("/", http.FileServer(http.Dir("./files")))
 	http.HandleFunc("/ws", handleWebSocket)
 	p := fmt.Sprintf(":%d", port)
 	fmt.Println("Serveur start at http://localhost:" + p)
