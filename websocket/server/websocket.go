@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -12,7 +13,23 @@ import (
 var (
 	clients      []*websocket.Conn
 	clientsMutex sync.Mutex
+
+	activeConn  *websocket.Conn
+	activeMutex sync.Mutex
+	writeMutex  sync.Mutex
 )
+
+func writeWS(conn *websocket.Conn, messageType int, data []byte) error {
+	writeMutex.Lock()
+	defer writeMutex.Unlock()
+	return conn.WriteMessage(messageType, data)
+}
+
+func setActiveConn(conn *websocket.Conn) {
+	activeMutex.Lock()
+	activeConn = conn
+	activeMutex.Unlock()
+}
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -40,7 +57,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Received msg : %s\n", message)
 
 	reponse := fmt.Sprintf("Your are ")
-	err = conn.WriteMessage(messageType, []byte(reponse))
+	err = writeWS(conn, messageType, []byte(reponse))
 	if err != nil {
 		log.Println("Send error : ", err)
 		return
@@ -59,14 +76,23 @@ func remove(i int) {
 func back() {
 	for {
 		clientsMutex.Lock()
+		if len(clients) == 0 {
+			clientsMutex.Unlock()
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
 		for i := 0; i < len(clients); i++ {
 			conn := clients[i]
 			clientsMutex.Unlock()
+
 			log.Println("Is", i, " turn.")
+			setActiveConn(conn)
+
 			send := fmt.Sprintf("Your turn")
-			err := conn.WriteMessage(1, []byte(send))
+			err := writeWS(conn, 1, []byte(send))
 			if err != nil {
 				log.Println("Send error : ", err)
+				setActiveConn(nil)
 				remove(i)
 				conn.Close()
 				i--
@@ -76,6 +102,7 @@ func back() {
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
 				log.Println("Client disconnected :", err)
+				setActiveConn(nil)
 				remove(i)
 				conn.Close()
 				i--
@@ -94,6 +121,7 @@ func back() {
 
 func StartWebSocket(port int) {
 	go back()
+	go soundLoop()
 	http.Handle("/", http.FileServer(http.Dir("./files")))
 	http.HandleFunc("/ws", handleWebSocket)
 	p := fmt.Sprintf(":%d", port)
